@@ -40,8 +40,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Enable corepack
-        run: corepack enable
+      # Must run before actions/setup-node: its pnpm cache handling shells
+      # out to `pnpm` from the workspace root (not frontend/), before
+      # Corepack would see frontend/package.json's "packageManager" pin.
+      # Without an explicitly pinned pnpm here, Corepack falls back to
+      # resolving the latest pnpm release, which can require a newer Node
+      # than the one this project targets.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
