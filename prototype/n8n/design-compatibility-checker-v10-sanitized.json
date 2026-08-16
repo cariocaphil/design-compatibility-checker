@@ -1,0 +1,891 @@
+{
+  "name": "Design-compatibility-checker-demo V10 Canonical Fix",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Design Component Analysis",
+        "formDescription": "Upload a screenshot of your Figma design to check if it can be built with Material UI components",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Design Screenshot",
+              "fieldType": "file",
+              "fieldName": "designImage",
+              "multipleFiles": false,
+              "acceptFileTypes": ".png,.jpg,.jpeg",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Additional Context (Optional)",
+              "fieldType": "textarea",
+              "fieldName": "context",
+              "placeholder": "Any specific details about the design or requirements..."
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "9f27bdd8-3387-44f9-befa-02d0c363d5f7",
+      "name": "Upload Design Screenshot",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "text": "=Analyze the design screenshot and return a compact, implementation-neutral JSON decomposition of the visible UI.\n\nDo not map to React or Material UI components yet.\n\nFocus only on visible frontend structure:\n- page layout\n- groups/sections\n- atomic UI elements\n- repeated structures\n- separators/dividers\n- visible states\n- relationships between elements\n\nImportant rules:\n- Return STRICT valid JSON only.\n- Do not use markdown.\n- Do not wrap JSON in code fences.\n- Keep all descriptions short.\n- Do not include long rationale.\n- Do not speculate about hidden behavior.\n- Only describe visible elements.\n- If repeated items are detected, itemCount must equal visibleItems.length.\n- Limit visibleItems to the actually visible labels.\n- Detect divider lines explicitly, including split/interrupted lines around icons, labels, or whitespace.\n\nReturn exactly this JSON shape. The object is the canonical UI model used by all downstream analysis, regardless of input source:\n\n{\n  \"layout\": {\n    \"overallStructure\": \"\",\n    \"regions\": [],\n    \"spacing\": \"\",\n    \"alignment\": \"\",\n    \"responsiveHints\": \"\"\n  },\n  \"groups\": [\n    {\n      \"id\": \"\",\n      \"type\": \"\",\n      \"children\": []\n    }\n  ],\n  \"elements\": [\n    {\n      \"id\": \"\",\n      \"visualRole\": \"\",\n      \"visibleText\": \"\",\n      \"state\": \"\",\n      \"interactionHint\": \"\",\n      \"confidence\": 0\n    }\n  ],\n  \"separators\": [\n    {\n      \"id\": \"\",\n      \"orientation\": \"\",\n      \"continuity\": \"\",\n      \"associatedGroup\": \"\",\n      \"associatedLabel\": \"\",\n      \"associatedIcon\": \"\",\n      \"confidence\": 0\n    }\n  ],\n  \"repeatedStructures\": [\n    {\n      \"id\": \"\",\n      \"itemType\": \"\",\n      \"itemCount\": 0,\n      \"visibleItems\": [],\n      \"sharedStyle\": \"\",\n      \"interactionPattern\": \"\",\n      \"state\": \"\",\n      \"confidence\": 0\n    }\n  ],\n  \"relationships\": [\n    {\n      \"source\": \"\",\n      \"target\": \"\",\n      \"relationship\": \"\"\n    }\n  ],\n  \"customPatterns\": [\n    {\n      \"type\": \"\",\n      \"description\": \"\"\n    }\n  ]\n}\n\nAdditional context:\n{{ $(\"Upload Design Screenshot\").item.json.context || \"None provided\" }}",
+        "inputType": "base64",
+        "binaryPropertyName": "designImage",
+        "options": {
+          "detail": "high",
+          "maxTokens": 1200
+        }
+      },
+      "id": "abf0dae3-6c61-4008-84cd-da597b28b1c9",
+      "name": "Analyze Design Screenshot",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        400,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "result",
+              "type": "string",
+              "value": "=# Material UI Compatibility Assessment\n\n## Summary\n\n**Compatibility Score:** {{\n  (() => {\n    const score = ($json.output || $json).summary?.compatibilityScore;\n\n    return typeof score === \"number\"\n      ? Math.round(score) + \"%\"\n      : \"Not available\";\n  })()\n}}\n\n**Customization Effort:** {{\n  (() => {\n    const effort = ($json.output || $json).summary?.customizationEffort;\n\n    return effort === \"none\" ? \"🟢 None\" :\n      effort === \"minor\" ? \"🟡 Minor\" :\n      effort === \"medium\" ? \"🟠 Medium\" :\n      effort === \"high\" ? \"🔴 High\" :\n      \"Not available\";\n  })()\n}}\n\n**Confidence:** {{\n  (() => {\n    const confidence = ($json.output || $json).summary?.confidence;\n\n    return typeof confidence === \"number\"\n      ? Math.round(confidence * 100) + \"%\"\n      : \"Not available\";\n  })()\n}}\n\n**Assessment:** {{\n  ($json.output || $json).summary?.overallCompatibility ||\n  \"No compatibility summary available.\"\n}}\n\n---\n\n## Recommended MUI Implementation\n\n| Design area | Recommended MUI implementation | Customization |\n|---|---|---|\n{{\n(() => {\n  const data = $json.output || $json;\n  const rows = [];\n\n  const addRow = (target, strategy, level) => {\n    if (!target || !strategy) return;\n\n    rows.push({\n      target: String(target).trim(),\n      strategy: String(strategy).trim(),\n      level: level || \"none\"\n    });\n  };\n\n  (data.layoutMappings || []).forEach(m => {\n    addRow(\n      m.layoutId,\n      (m.muiComponents || []).join(\" + \"),\n      m.customizationLevel\n    );\n  });\n\n  (data.elementMappings || []).forEach(m => {\n    addRow(\n      m.elementId,\n      [m.muiComponent, m.variant]\n        .filter(Boolean)\n        .join(\" — \"),\n      m.customizationLevel\n    );\n  });\n\n  (data.groupMappings || []).forEach(m => {\n    addRow(\n      m.groupId,\n      [m.muiContainerComponent, m.muiChildComponent]\n        .filter(Boolean)\n        .join(\" + \"),\n      m.customizationLevel\n    );\n  });\n\n  (data.semanticImplementationMappings || []).forEach(m => {\n    addRow(\n      m.semanticPatternName,\n      (m.muiStrategy || []).join(\" + \"),\n      m.customizationLevel\n    );\n  });\n\n  const priority = {\n    high: 4,\n    medium: 3,\n    minor: 2,\n    none: 1\n  };\n\n  const levelLabel = level =>\n    level === \"none\" ? \"🟢 None\" :\n    level === \"minor\" ? \"🟡 Minor\" :\n    level === \"medium\" ? \"🟠 Medium\" :\n    \"🔴 High\";\n\n  const seen = new Set();\n\n  return rows\n    .filter(row => {\n      const key =\n        row.target.toLowerCase() +\n        \"|\" +\n        row.strategy.toLowerCase();\n\n      if (seen.has(key)) return false;\n\n      seen.add(key);\n      return true;\n    })\n    .sort(\n      (a, b) =>\n        (priority[b.level] || 0) -\n        (priority[a.level] || 0)\n    )\n    .map(row =>\n      \"| \" +\n      row.target +\n      \" | `\" +\n      row.strategy.replace(/\\|/g, \"\\\\|\") +\n      \"` | \" +\n      levelLabel(row.level) +\n      \" |\"\n    )\n    .join(\"\\n\");\n})()\n}}\n\n---\n\n## Significant Customizations\n\n{{\n(() => {\n  const data = $json.output || $json;\n  const items = [];\n\n  const addItem = (target, level, reason) => {\n    if (\n      !target ||\n      !reason ||\n      ![\"medium\", \"high\"].includes(level)\n    ) {\n      return;\n    }\n\n    items.push({\n      target: String(target).trim(),\n      level,\n      reason: String(reason).trim()\n    });\n  };\n\n  (data.layoutMappings || []).forEach(m => {\n    addItem(\n      m.layoutId,\n      m.customizationLevel,\n      m.reason\n    );\n  });\n\n  (data.elementMappings || []).forEach(m => {\n    addItem(\n      m.elementId,\n      m.customizationLevel,\n      m.reason\n    );\n  });\n\n  (data.groupMappings || []).forEach(m => {\n    addItem(\n      m.groupId,\n      m.customizationLevel,\n      m.reason\n    );\n  });\n\n  (data.semanticImplementationMappings || []).forEach(m => {\n    addItem(\n      m.semanticPatternName,\n      m.customizationLevel,\n      m.reason\n    );\n  });\n\n  const priority = {\n    high: 2,\n    medium: 1\n  };\n\n  const levelLabel = level =>\n    level === \"medium\"\n      ? \"🟠 Medium\"\n      : \"🔴 High\";\n\n  const seen = new Set();\n\n  const uniqueItems = items.filter(item => {\n    const key =\n      item.target.toLowerCase() +\n      \"|\" +\n      item.reason\n        .toLowerCase()\n        .replace(/\\s+/g, \" \")\n        .trim();\n\n    if (seen.has(key)) return false;\n\n    seen.add(key);\n    return true;\n  });\n\n  const rendered = uniqueItems\n    .sort(\n      (a, b) =>\n        (priority[b.level] || 0) -\n        (priority[a.level] || 0)\n    )\n    .map(item =>\n      \"- **\" +\n      item.target +\n      \"** — \" +\n      levelLabel(item.level) +\n      \"\\n  \" +\n      item.reason\n    )\n    .join(\"\\n\\n\");\n\n  return rendered ||\n    \"No significant customization is required.\";\n})()\n}}\n\n---\n\n## Accessibility Considerations\n\n{{\n(() => {\n  const data = $json.output || $json;\n  const notes = [];\n\n  const accessibilityPattern =\n    /aria-|accessible|accessibility|screen reader|keyboard|focus|heading|decorative|aria-pressed|aria-describedby|aria-hidden|role=/i;\n\n  const collect = item => {\n    const target =\n      item.layoutId ||\n      item.elementId ||\n      item.groupId ||\n      item.semanticPatternName ||\n      \"Implementation\";\n\n    const sources = [\n      item.reason,\n      ...(item.muiStrategy || [])\n    ].filter(Boolean);\n\n    const relevant = sources.filter(text =>\n      accessibilityPattern.test(String(text))\n    );\n\n    if (!relevant.length) return;\n\n    notes.push({\n      target: String(target).trim(),\n      text: relevant.join(\" \")\n    });\n  };\n\n  (data.layoutMappings || []).forEach(collect);\n  (data.elementMappings || []).forEach(collect);\n  (data.groupMappings || []).forEach(collect);\n  (data.semanticImplementationMappings || []).forEach(collect);\n\n  const seen = new Set();\n\n  const uniqueNotes = notes.filter(note => {\n    const key = note.text\n      .toLowerCase()\n      .replace(/\\s+/g, \" \")\n      .trim();\n\n    if (seen.has(key)) return false;\n\n    seen.add(key);\n    return true;\n  });\n\n  return uniqueNotes.length\n    ? uniqueNotes\n        .slice(0, 3)\n        .map(note =>\n          \"- **\" +\n          note.target +\n          \":** \" +\n          note.text\n        )\n        .join(\"\\n\")\n    : \"No specific accessibility considerations were identified.\";\n})()\n}}\n\n---\n\n## Risks and Open Questions\n\n{{\n(() => {\n  const warnings =\n    ($json.output || $json)\n      .customImplementationWarnings || [];\n\n  const severityPriority = {\n    high: 3,\n    medium: 2,\n    low: 1\n  };\n\n  const severityLabel = severity =>\n    severity === \"low\" ? \"🟡 Low\" :\n    severity === \"medium\" ? \"🟠 Medium\" :\n    \"🔴 High\";\n\n  const seen = new Set();\n\n  const uniqueWarnings = warnings\n    .filter(warning => {\n      const target = String(\n        warning.target || \"Implementation\"\n      ).trim();\n\n      const reason = String(\n        warning.reason ||\n        \"Further clarification is required.\"\n      ).trim();\n\n      const key =\n        target.toLowerCase() +\n        \"|\" +\n        reason.toLowerCase();\n\n      if (seen.has(key)) return false;\n\n      seen.add(key);\n      return true;\n    })\n    .sort(\n      (a, b) =>\n        (severityPriority[b.severity] || 0) -\n        (severityPriority[a.severity] || 0)\n    );\n\n  return uniqueWarnings.length\n    ? uniqueWarnings\n        .map(warning =>\n          \"- **\" +\n          (warning.target || \"Implementation\") +\n          \"** — \" +\n          severityLabel(warning.severity) +\n          \"\\n  \" +\n          (\n            warning.reason ||\n            \"Further clarification is required.\"\n          )\n        )\n        .join(\"\\n\\n\")\n    : \"No major implementation risks were identified.\";\n})()\n}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2686d4b3-2a93-4c69-a51f-7139e4375f80",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2048,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ae73c2d7-2a2c-454b-885f-7dcabca57f1d",
+      "name": "OpenAI Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1632,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "id": "d9371b0f-22c7-4c4d-920c-da674916e8f7",
+      "name": "Load MUI Docs (Weekly)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        32,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ref = \"v7.3.1\";\n\nconst docs = [\n  { component: \"Button\", path: \"docs/data/material/components/buttons/buttons.md\" },\n  { component: \"TextField\", path: \"docs/data/material/components/text-fields/text-fields.md\" },\n  { component: \"Select\", path: \"docs/data/material/components/selects/selects.md\" },\n  { component: \"Checkbox\", path: \"docs/data/material/components/checkboxes/checkboxes.md\" },\n  { component: \"Radio\", path: \"docs/data/material/components/radio-buttons/radio-buttons.md\" },\n  { component: \"Switch\", path: \"docs/data/material/components/switches/switches.md\" },\n  { component: \"Card\", path: \"docs/data/material/components/cards/cards.md\" },\n  { component: \"Typography\", path: \"docs/data/material/components/typography/typography.md\" },\n  { component: \"Table\", path: \"docs/data/material/components/tables/tables.md\" },\n  { component: \"List\", path: \"docs/data/material/components/lists/lists.md\" },\n];\n\nreturn docs.map(doc => ({\n  json: {\n    ...doc,\n    ref,\n    repo: \"mui/material-ui\",\n    type: \"component-doc\"\n  }\n}));\n\nreturn docs;"
+      },
+      "id": "28bfb2ce-d4d1-4c23-8c5d-93ac955c67bf",
+      "name": "Fetch MUI Component Docs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://raw.githubusercontent.com/mui/material-ui/{{ $json.ref }}/{{ $json.path }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "3949717b-cd53-4083-a029-ba95156561aa",
+      "name": "Get Component Doc from GitHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        704,
+        592
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.result }}",
+        "destinationKey": "html",
+        "options": {
+          "completeHTMLDocument": true,
+          "emoji": true,
+          "ghCodeBlocks": true,
+          "strikethrough": true,
+          "tables": true
+        }
+      },
+      "id": "0736743b-acaa-41cb-a4e7-8dcc1cbb4297",
+      "name": "Render HTML Visualization",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "showText",
+        "responseText": "={{ $json.finalHtml }}"
+      },
+      "id": "2da0da11-254c-47a1-b551-d0400450543b",
+      "name": "Respond with HTML",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        2720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\n\nconst binaryPropertyName = \"designImage\";\nconst binary = item.binary[binaryPropertyName];\n\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryPropertyName);\nconst base64 = buffer.toString(\"base64\");\n\nreturn [\n  {\n    json: {\n      ...item.json,\n      imageDataUrl: `data:${binary.mimeType};base64,${base64}`,\n      debugMimeType: binary.mimeType,\n      debugFirstChars: base64.substring(0, 40),\n    },\n    binary: {\n      ...item.binary,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        224
+      ],
+      "id": "cf4e6df3-d0bc-4880-a8e0-11b18f68a3c5",
+      "name": "Prepare Screenshot Data URL"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\n\nlet reportHtml = item.json.html || item.json.finalHtml || \"\";\n\n// Strip nested full HTML document wrappers from Markdown-to-HTML output\nreportHtml = reportHtml\n  .replace(/<!DOCTYPE[\\s\\S]*?>/gi, \"\")\n  .replace(/<html[^>]*>/gi, \"\")\n  .replace(/<\\/html>/gi, \"\")\n  .replace(/<head[\\s\\S]*?<\\/head>/gi, \"\")\n  .replace(/<body[^>]*>/gi, \"\")\n  .replace(/<\\/body>/gi, \"\")\n  .trim();\n\nlet imageDataUrl = \"\";\n\ntry {\n  imageDataUrl =\n    $(\"Prepare Screenshot Data URL\").first()?.json?.imageDataUrl || \"\";\n} catch (e) {\n  imageDataUrl = \"\";\n}\n\nconst imageHtml = imageDataUrl\n  ? `\n    <section class=\"screenshot-section\">\n      <h2>Uploaded Design</h2>\n      <img\n        src=\"${imageDataUrl}\"\n        alt=\"Uploaded design screenshot\"\n        class=\"screenshot\"\n      />\n    </section>\n  `\n  : \"\";\n\nconst finalHtml = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\" />\n  <title>Material UI Component Analysis</title>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      max-width: 1200px;\n      margin: 40px auto;\n      padding: 0 24px;\n      background: #f3f4f6;\n      color: #111827;\n      line-height: 1.6;\n    }\n    .screenshot-section { margin-bottom: 40px; }\n    .screenshot {\n      display: block;\n      width: 100%;\n      max-width: 1000px;\n      height: auto;\n      border-radius: 12px;\n      border: 1px solid #d1d5db;\n      box-shadow: 0 8px 24px rgba(0,0,0,0.12);\n      background: white;\n    }\n    .report {\n      background: white;\n      padding: 40px;\n      border-radius: 16px;\n      border: 1px solid #e5e7eb;\n      box-shadow: 0 8px 24px rgba(0,0,0,0.08);\n    }\n    code {\n      background: #f3f4f6;\n      padding: 2px 6px;\n      border-radius: 4px;\n    }\n  </style>\n</head>\n<body>\n  ${imageHtml}\n  <section class=\"report\">\n    ${reportHtml}\n  </section>\n</body>\n</html>\n`;\n\nreturn [\n  {\n    json: {\n      ...item.json,\n      finalHtml,\n      html: finalHtml,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2496,
+        0
+      ],
+      "id": "fd649273-c26c-486b-9885-0943737fb960",
+      "name": "Compose Final HTML Page"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ref = \"v7.3.1\";\n\nconst files = [\n  {\n    component: \"Button\",\n    path: \"packages/mui-material/src/Button/Button.d.ts\",\n    type: \"typescript-definition\",\n  },\n  {\n    component: \"TextField\",\n    path: \"packages/mui-material/src/TextField/TextField.d.ts\",\n    type: \"typescript-definition\",\n  },\n  {\n    component: \"Typography\",\n    path: \"packages/mui-material/src/Typography/Typography.d.ts\",\n    type: \"typescript-definition\",\n  },\n  {\n    component: \"Card\",\n    path: \"packages/mui-material/src/Card/Card.d.ts\",\n    type: \"typescript-definition\",\n  },\n];\n\nreturn files.map(file => ({\n  json: {\n    ...file,\n    ref,\n    repo: \"mui/material-ui\",\n    source: \"mui-github-source\",\n  },\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        784
+      ],
+      "id": "938dc0d9-74d4-47e4-8a63-30308b09f111",
+      "name": "Build MUI Source Manifest"
+    },
+    {
+      "parameters": {
+        "url": "=https://raw.githubusercontent.com/mui/material-ui/{{ $json.ref }}/{{ $json.path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        480,
+        784
+      ],
+      "id": "3516e52c-a35b-450e-816c-0a1f255d0cc5",
+      "name": "Fetch MUI Source from GitHub"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst docs = [];\n\nfor (const item of items) {\n  if (item.json.data && typeof item.json.data === \"string\") {\n    docs.push({\n      json: {\n        pageContent: item.json.data,\n        metadata: {\n          source: \"mui-github-source\",\n          repo: item.json.repo,\n          ref: item.json.ref,\n          component: item.json.component,\n          path: item.json.path,\n          type: item.json.type,\n        },\n      },\n    });\n  }\n}\n\nreturn docs;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        784
+      ],
+      "id": "0f78fb67-aec4-4117-8fe9-b4456430d07c",
+      "name": "Prepare MUI Source Documents"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        992,
+        688
+      ],
+      "id": "e092c56c-6d3a-4298-9968-52aeb57124bd",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst docs = [];\n\nfor (const item of items) {\n  const json = item.json || {};\n  const metadata = json.metadata || {};\n  const content = json.pageContent || json.data;\n\n  if (content && typeof content === 'string') {\n    docs.push({\n      json: {\n        pageContent: content,\n        metadata: {\n          component: json.component || metadata.component,\n          source: json.source || metadata.source || 'unknown',\n          repo: json.repo || metadata.repo,\n          ref: json.ref || metadata.ref,\n          path: json.path || metadata.path,\n          type: json.type || metadata.type,\n        },\n      },\n    });\n  }\n}\n\nreturn docs;"
+      },
+      "id": "0790e5d2-2c0b-41de-ae4f-401045fb9181",
+      "name": "Prepare RAG Documents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Analyze the provided UI decomposition JSON semantically.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a semantic UI reasoning system.\n\nAnalyze the provided visual decomposition JSON.\n\nIdentify:\n- grouping structures\n- section separators\n- interaction intent\n- repeated UI patterns\n- layout semantics\n- visual hierarchy\n- compositional patterns\n\nExplain WHY visual elements exist, not only WHAT they are.\n\nDo not reduce semantic structures to abstract intent only.\n\nPreserve important visual encoding characteristics, especially when:\n- multiple primitives create one semantic structure\n- separators contain embedded labels or icons\n- alignment, interruption, or overlap patterns are visually meaningful\n- semantic meaning depends partly on visual composition itself\n\nFor each semantic pattern, describe both:\n- its semantic purpose\n- the visual composition pattern implementing it\n\nDo not infer:\n- missing CTAs,\n- submit buttons,\n- continue buttons,\n- future workflow steps,\n- hidden actions,\n- confirmation flows,\n- sticky actions,\n- modal flows,\nunless they are explicitly supported by the visual decomposition.\n\nIf interaction intent is ambiguous:\n- describe the ambiguity,\n- do not invent missing workflow elements.\n\nReturn strict JSON only."
+            },
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        848,
+        0
+      ],
+      "id": "3c0fed15-2cb2-40d3-981b-71e2a3cf1171",
+      "name": "Interpret Semantic UI Structure"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"semanticPatterns\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"name\": {\n            \"type\": \"string\"\n          },\n          \"type\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"layout\",\n              \"interaction\",\n              \"visual-rhythm\",\n              \"ux-intent\",\n              \"composite\"\n            ]\n          },\n          \"visualEvidence\": {\n            \"type\": \"string\"\n          },\n          \"purpose\": {\n            \"type\": \"string\"\n          },\n          \"importance\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"low\",\n              \"medium\",\n              \"high\",\n              \"critical\"\n            ]\n          },\n          \"muiImplications\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            }\n          },\n          \"confidence\": {\n            \"type\": \"number\"\n          }\n        },\n        \"required\": [\n          \"name\",\n          \"type\",\n          \"visualEvidence\",\n          \"purpose\",\n          \"importance\",\n          \"muiImplications\",\n          \"confidence\"\n        ]\n      }\n    },\n    \"missingOrAmbiguousPatterns\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"description\": {\n            \"type\": \"string\"\n          },\n          \"reason\": {\n            \"type\": \"string\"\n          },\n          \"confidence\": {\n            \"type\": \"number\"\n          }\n        },\n        \"required\": [\n          \"description\",\n          \"reason\",\n          \"confidence\"\n        ]\n      }\n    }\n  },\n  \"required\": [\n    \"semanticPatterns\",\n    \"missingOrAmbiguousPatterns\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        224
+      ],
+      "id": "50640b50-3fea-4f56-b056-c46a47c5e210",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        816,
+        240
+      ],
+      "id": "5878bd71-6917-4912-89ad-499b741fd38f",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\n    \"summary\",\n    \"layoutMappings\",\n    \"elementMappings\",\n    \"groupMappings\",\n    \"semanticImplementationMappings\",\n    \"customImplementationWarnings\"\n  ],\n  \"properties\": {\n    \"summary\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\n        \"compatibilityScore\",\n        \"customizationEffort\",\n        \"overallCompatibility\",\n        \"confidence\"\n      ],\n      \"properties\": {\n        \"compatibilityScore\": {\n          \"type\": \"number\",\n          \"minimum\": 0,\n          \"maximum\": 100\n        },\n        \"customizationEffort\": {\n          \"type\": \"string\",\n          \"enum\": [\n            \"none\",\n            \"minor\",\n            \"medium\",\n            \"high\"\n          ]\n        },\n        \"overallCompatibility\": {\n          \"type\": \"string\"\n        },\n        \"confidence\": {\n          \"type\": \"number\",\n          \"minimum\": 0,\n          \"maximum\": 1\n        }\n      }\n    },\n    \"layoutMappings\": {\n      \"type\": \"array\",\n      \"maxItems\": 2,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"layoutId\",\n          \"muiComponents\",\n          \"customizationLevel\",\n          \"reason\",\n          \"confidence\"\n        ],\n        \"properties\": {\n          \"layoutId\": {\n            \"type\": \"string\"\n          },\n          \"muiComponents\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            }\n          },\n          \"customizationLevel\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"none\",\n              \"minor\",\n              \"medium\",\n              \"high\"\n            ]\n          },\n          \"reason\": {\n            \"type\": \"string\"\n          },\n          \"confidence\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 1\n          }\n        }\n      }\n    },\n    \"elementMappings\": {\n      \"type\": \"array\",\n      \"maxItems\": 5,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"elementId\",\n          \"muiComponent\",\n          \"variant\",\n          \"customizationLevel\",\n          \"reason\",\n          \"confidence\"\n        ],\n        \"properties\": {\n          \"elementId\": {\n            \"type\": \"string\"\n          },\n          \"muiComponent\": {\n            \"type\": \"string\"\n          },\n          \"variant\": {\n            \"type\": \"string\"\n          },\n          \"customizationLevel\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"none\",\n              \"minor\",\n              \"medium\",\n              \"high\"\n            ]\n          },\n          \"reason\": {\n            \"type\": \"string\"\n          },\n          \"confidence\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 1\n          }\n        }\n      }\n    },\n    \"groupMappings\": {\n      \"type\": \"array\",\n      \"maxItems\": 3,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"groupId\",\n          \"muiContainerComponent\",\n          \"muiChildComponent\",\n          \"customizationLevel\",\n          \"reason\",\n          \"confidence\"\n        ],\n        \"properties\": {\n          \"groupId\": {\n            \"type\": \"string\"\n          },\n          \"muiContainerComponent\": {\n            \"type\": \"string\"\n          },\n          \"muiChildComponent\": {\n            \"type\": \"string\"\n          },\n          \"customizationLevel\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"none\",\n              \"minor\",\n              \"medium\",\n              \"high\"\n            ]\n          },\n          \"reason\": {\n            \"type\": \"string\"\n          },\n          \"confidence\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 1\n          }\n        }\n      }\n    },\n    \"semanticImplementationMappings\": {\n      \"type\": \"array\",\n      \"maxItems\": 4,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"semanticPatternName\",\n          \"semanticType\",\n          \"muiStrategy\",\n          \"reason\",\n          \"customizationLevel\",\n          \"confidence\"\n        ],\n        \"properties\": {\n          \"semanticPatternName\": {\n            \"type\": \"string\"\n          },\n          \"semanticType\": {\n            \"type\": \"string\"\n          },\n          \"muiStrategy\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            }\n          },\n          \"reason\": {\n            \"type\": \"string\"\n          },\n          \"customizationLevel\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"none\",\n              \"minor\",\n              \"medium\",\n              \"high\"\n            ]\n          },\n          \"confidence\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 1\n          }\n        }\n      }\n    },\n    \"customImplementationWarnings\": {\n      \"type\": \"array\",\n      \"maxItems\": 3,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"target\",\n          \"reason\",\n          \"severity\"\n        ],\n        \"properties\": {\n          \"target\": {\n            \"type\": \"string\"\n          },\n          \"reason\": {\n            \"type\": \"string\"\n          },\n          \"severity\": {\n            \"type\": \"string\",\n            \"enum\": [\n              \"low\",\n              \"medium\",\n              \"high\"\n            ]\n          }\n        }\n      }\n    }\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1824,
+        160
+      ],
+      "id": "2a610125-2b68-4d41-a95c-603e5bc01716",
+      "name": "Component Analysis Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "mui_component_docs",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        1632,
+        688
+      ],
+      "id": "dd183e68-5c2f-460b-93bf-0aa8aaa4c6d1",
+      "name": "Qdrant Vector Store"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search Material UI documentation and component source knowledge to identify the best matching MUI components, layouts, props, variants, and implementation patterns for the analyzed UI structure.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "mui_component_docs",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        1568,
+        304
+      ],
+      "id": "940e7bc0-6fbc-4cdc-b9f8-c96ba4880851",
+      "name": "MUI Docs Retriever"
+    },
+    {
+      "parameters": {
+        "chunkSize": 2000,
+        "chunkOverlap": 200,
+        "options": {
+          "splitCode": "markdown"
+        }
+      },
+      "id": "760ff9e1-a5b2-4df1-b0a7-917dbe292aa2",
+      "name": "Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.pageContent }}",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "id": "e409deb4-4611-4946-951d-f32f6817e394",
+      "name": "Document Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const semanticInput = $input.first().json;\nconst semanticRoot = semanticInput.output || semanticInput;\n\n// Resolve the canonical UI model from whichever input adapter executed.\n// This is the only source-specific boundary; everything below uses one schema.\nlet visualRoot = {};\n\nconst tryNode = (nodeName) => {\n  try {\n    const nodeJson = $(nodeName).first()?.json || {};\n    const raw = nodeJson.output || nodeJson;\n\n    if (Array.isArray(raw)) {\n      const text = raw[0]?.content?.[0]?.text || \"\";\n      if (!text) return null;\n      return JSON.parse(text.replace(/```json|```/g, \"\").trim());\n    }\n\n    if (typeof raw === \"string\") {\n      return JSON.parse(raw.replace(/```json|```/g, \"\").trim());\n    }\n\n    if (raw?.content?.[0]?.text) {\n      return JSON.parse(\n        raw.content[0].text.replace(/```json|```/g, \"\").trim()\n      );\n    }\n\n    return raw && typeof raw === \"object\" ? raw : null;\n  } catch (e) {\n    return null;\n  }\n};\n\n// Prefer the already-normalized Figma model when that route executed;\n// otherwise use the screenshot analyzer's canonical JSON.\nvisualRoot =\n  tryNode(\"Normalize Figma Structure\") ||\n  tryNode(\"Analyze Design Screenshot\") ||\n  {};\n\nconst summaryProjection = {\n  layout: {\n    overallStructure: visualRoot.layout?.overallStructure || \"Not specified\",\n    regions: visualRoot.layout?.regions || [],\n    alignment: visualRoot.layout?.alignment,\n    spacing: visualRoot.layout?.spacing\n  },\n\n  groups: (visualRoot.groups || []).map(g => ({\n    id: g.id,\n    type: g.type,\n    children: g.children || []\n  })),\n\n  elements: (visualRoot.elements || []).map(el => ({\n    id: el.id,\n    role: el.visualRole,\n    text: el.visibleText || undefined,\n    state: el.state || undefined\n  })).filter(el => el.role),\n\n  separators: (visualRoot.separators || []).map(sep => ({\n    id: sep.id,\n    orientation: sep.orientation,\n    continuity: sep.continuity,\n    associatedGroup: sep.associatedGroup,\n    associatedIcon: sep.associatedIcon\n  })),\n\n  repeatedStructures: (visualRoot.repeatedStructures || []).map(rep => ({\n    id: rep.id,\n    itemType: rep.itemType,\n    count: rep.visibleItems?.length || rep.itemCount || 0,\n    visibleTextList: rep.visibleItems || [],\n    interactionPattern: rep.interactionPattern,\n    sharedStyle: rep.sharedStyle\n  })),\n\n  semanticPatterns: (semanticRoot.semanticPatterns || []).map(pattern => ({\n    name: pattern.name,\n    type: pattern.type,\n    importance: pattern.importance,\n    muiImplications: pattern.muiImplications || []\n  })),\n\n  missingOrAmbiguousPatterns: (semanticRoot.missingOrAmbiguousPatterns || [])\n    .filter(p => !p.description?.toLowerCase().includes(\"count\"))\n    .filter(p => !p.reason?.toLowerCase().includes(\"count\")),\n\n  source: visualRoot._canonicalMeta?.source ||\n    (tryNode(\"Normalize Figma Structure\") ? \"figma\" : \"screenshot\")\n};\n\nreturn [{ json: summaryProjection }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "d098addb-47ef-4d77-a4ec-26a943648dac",
+      "name": "Apply Summary Projection"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst figmaUrl = item.json.figmaUrl;\n\nconst match = figmaUrl.match(/\\/design\\/([a-zA-Z0-9]+)/);\nconst fileKey = match ? match[1] : null;\n\nif (!fileKey) {\n  throw new Error(\"Could not extract Figma file key from URL\");\n}\n\nreturn [{\n  json: {\n    figmaUrl,\n    fileKey\n  }\n}];"
+      },
+      "id": "931c4ffb-6e1f-4e63-9e9c-094f7ab3a8f1",
+      "name": "Extract Figma File Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.figma.com/v1/files/{{ $json.fileKey }}",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"X-Figma-Token\": \"={{ $env.FIGMA_ACCESS_TOKEN }}\"\n}",
+        "options": {}
+      },
+      "id": "94895ae4-0ad7-4281-b2bb-744289216b05",
+      "name": "Fetch Figma Design Graph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst figmaData = item.json;\n\nfunction extractNodes(node, depth = 0) {\n  const result = {\n    id: node.id,\n    name: node.name,\n    type: node.type,\n    depth\n  };\n\n  if (node.characters) {\n    result.text = node.characters;\n  }\n\n  if (node.layoutMode) {\n    result.layoutMode = node.layoutMode;\n  }\n\n  if (node.primaryAxisAlignItems) {\n    result.alignment = node.primaryAxisAlignItems;\n  }\n\n  if (node.itemSpacing !== undefined) {\n    result.spacing = node.itemSpacing;\n  }\n\n  if (node.children && node.children.length > 0) {\n    result.children = node.children.map(child => extractNodes(child, depth + 1));\n  }\n\n  return result;\n}\n\nconst document = figmaData.document || {};\nconst pages = document.children || [];\n\nconst frames = [];\nconst textElements = [];\nconst layoutGroups = [];\nconst autoLayoutContainers = [];\n\nfunction traverse(node) {\n  if (node.type === \"FRAME\") {\n    frames.push({\n      id: node.id,\n      name: node.name,\n      layoutMode: node.layoutMode,\n      children: node.children ? node.children.length : 0\n    });\n  }\n\n  if (node.type === \"TEXT\") {\n    textElements.push({\n      id: node.id,\n      text: node.characters || node.name,\n      name: node.name\n    });\n  }\n\n  if (node.layoutMode === \"VERTICAL\" || node.layoutMode === \"HORIZONTAL\") {\n    autoLayoutContainers.push({\n      id: node.id,\n      name: node.name,\n      layoutMode: node.layoutMode,\n      spacing: node.itemSpacing,\n      alignment: node.primaryAxisAlignItems\n    });\n  }\n\n  if (node.type === \"GROUP\") {\n    layoutGroups.push({\n      id: node.id,\n      name: node.name,\n      children: node.children ? node.children.length : 0\n    });\n  }\n\n  if (node.children) {\n    node.children.forEach(child => traverse(child));\n  }\n}\n\npages.forEach(page => traverse(page));\n\nconst normalized = {\n  layout: {\n    overallStructure: frames.length > 0 ? frames[0].layoutMode || \"unknown\" : \"unknown\",\n    regions: frames.map(f => f.name),\n    spacing: autoLayoutContainers.length > 0 ? autoLayoutContainers[0].spacing : \"unknown\",\n    alignment: autoLayoutContainers.length > 0 ? autoLayoutContainers[0].alignment : \"unknown\",\n    responsiveHints: \"\"\n  },\n  groups: layoutGroups.map(g => ({\n    id: g.id,\n    type: \"layout-group\",\n    children: []\n  })),\n  elements: textElements.map(el => ({\n    id: el.id,\n    visualRole: \"text\",\n    visibleText: el.text,\n    state: \"\",\n    interactionHint: \"\",\n    confidence: 0.9\n  })),\n  separators: [],\n  repeatedStructures: [],\n  relationships: [],\n  customPatterns: []\n};\n\nreturn [{\n  json: {\n    ...normalized,\n    _canonicalMeta: {\n      source: \"figma\",\n      schemaVersion: \"1\"\n    }\n  }\n}];"
+      },
+      "id": "728ba029-4091-4855-af59-a3141c222133",
+      "name": "Normalize Figma Structure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-6",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        1472,
+        192
+      ],
+      "id": "0ba1bb9c-22f6-4e93-a3e0-bbecf0e747c3",
+      "name": "Anthropic Chat Model"
+    },
+    {
+      "parameters": {
+        "formTitle": "Figma Design Compatibility Checker",
+        "formDescription": "Paste a Figma design URL to analyze Material UI compatibility.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Figma Design URL",
+              "fieldName": "figmaUrl",
+              "placeholder": "https://www.figma.com/design/...",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f8c72c1c-966f-4721-92dd-feb0b51f8d4c",
+      "name": "Enter Figma Desgin Url",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Evaluate the following compressed design summary for compatibility with Material UI.\n\nUse the compressed design summary as the only source of truth about the design.\n\nBefore finalizing your recommendations, consult the MUI Docs Retriever only when necessary to validate component mappings, implementation strategies, accessibility behavior, or customization requirements.\n\nReturn the required JSON structure defined in the system message.\n\nPrioritize the findings that matter most for implementation:\n- Can the design be built with Material UI?\n- Which Material UI components or composition patterns should be used?\n- Which parts require customization?\n\nPrefer fewer, high-value mappings over exhaustive coverage.\nConsolidate repeated elements and repeated structures whenever possible.\nKeep every reason concise.\n\nCOMPRESSED DESIGN SUMMARY PROJECTION:\n\n{{ JSON.stringify($json) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a frontend design-system compatibility reviewer specialized in React and Material UI.\n\nYour task is to determine how well a structured UI design can be implemented using standard Material UI components.\n\nYou do not analyze screenshots directly.\nUse only the structured design summary supplied by the user.\n\nBefore finalizing recommendations, consult the MUI Docs Retriever for the Material UI components that are relevant to the design.\n\nUse retrieval only to validate:\n\n- component suitability\n- important props or variants\n- accessibility behavior\n- layout constraints\n- implementation feasibility\n\nDo not retrieve or summarize generic Material UI documentation.\n\nRetrieve only what is necessary to validate the proposed mappings.\n\nYour output must be concise, implementation-oriented, and grounded in the supplied input.\n\n--------------------------------------------------\nCORE TASK\n--------------------------------------------------\n\nEvaluate:\n\n- how closely the visible design aligns with standard Material UI components\n- the principal Material UI components and composition patterns\n- where the visible design requires meaningful customization beyond standard Material UI usage\n- implementation risks that are directly supported by the visible design\n\nPrefer standard Material UI composition before suggesting custom components.\n\nMap:\n\n- layout structures to Box, Stack, Grid, Container, Paper or Divider\n- visible elements to the single best Material UI component\n- repeated structures to one container-and-child mapping\n- semantic patterns to concise implementation strategies\n\n--------------------------------------------------\nCONCISION RULES\n--------------------------------------------------\n\n- Keep every reason to one short sentence (maximum about 20 words).\n- Do not repeat the same implementation insight across multiple mapping arrays.\n- Consolidate repeated or visually identical elements into one mapping.\n- Do not map purely decorative details unless they affect implementation, accessibility, or customization.\n- Do not explain obvious one-to-one MUI mappings in depth.\n- Focus on deviations, composite structures, accessibility implications, and meaningful customization effort.\n- Prefer one recommended implementation strategy.\n- Do not include generic advice.\n- Do not provide an overall recommendation outside the required JSON structure.\n\n--------------------------------------------------\nGROUNDING RULES\n--------------------------------------------------\n\nUse the supplied structured input as the only source of truth.\n\nNever invent:\n\n- UI elements\n- controls\n- buttons\n- workflow steps\n- interactions\n- layouts\n\nDo not infer footer actions, CTAs, sticky regions or additional buttons unless explicitly supported.\n\nDo not infer interaction behavior from appearance alone.\n\nIf a visual interaction state is not shown, treat it as an implementation clarification with low severity unless it materially affects component selection or accessibility.\n\nOnly treat ambiguity as a compatibility concern when it changes the recommended Material UI implementation.\n\n--------------------------------------------------\nSTATIC DESIGN STATE ASSUMPTIONS\n--------------------------------------------------\n\nThe supplied design typically represents one visual state only.\n\nDo not penalize compatibility because hover, focus, pressed, selected, disabled, loading, or unavailable states are not visible.\n\nAssume standard Material UI interaction states are available unless the visible design explicitly requires different behavior or styling.\n\nTreat missing interaction states as implementation clarifications rather than compatibility problems.\n\nOnly increase customization effort when the visible design cannot reasonably be reproduced using standard Material UI component states.\n\n--------------------------------------------------\nSEMANTIC & COMPOSITE STRUCTURES\n--------------------------------------------------\n\nRecognize when multiple Material UI primitives together implement one semantic structure.\n\nPay particular attention to:\n\n- section dividers\n- grouped controls\n- grouped booking or time-slot sections\n- repeated selection patterns\n- visual hierarchy\n- repeated structures\n- interaction semantics\n- composite visual idioms\n\nA visually similar Material UI component does not automatically imply low customization effort.\n\nStandard Material UI interaction behavior (hover, focus, selected, disabled, keyboard navigation) should not increase customization effort unless the visible design explicitly requires non-standard behavior or styling.\n\nConsider spacing, grouping, alignment and hierarchy whenever they materially affect visual fidelity.\n\n--------------------------------------------------\nACCESSIBILITY\n--------------------------------------------------\n\n- Decorative icons should generally be aria-hidden.\n- Interrupted or labelled dividers may require Divider combined with Stack, Box or Typography.\n- Mention accessibility only where there is a concrete implementation implication.\n- Do not invent accessibility concerns.\n\n--------------------------------------------------\nREPORT PRIORITIZATION\n--------------------------------------------------\n\nThe report should answer:\n\n1. How compatible is the design with Material UI?\n2. Which Material UI components or composition patterns should be used?\n3. Which parts require customization?\n\nTreat meaningful customization beyond standard Material UI composition and theming as the primary engineering signal.\n\nPrioritize findings with implementation impact.\n\nDo not include obvious direct mappings unless they help explain the implementation.\n\nReturn no more than:\n\n- 2 layoutMappings\n- 5 elementMappings\n- 3 groupMappings\n- 4 semanticImplementationMappings\n- 3 customImplementationWarnings\n\n--------------------------------------------------\nOUTPUT RULES\n--------------------------------------------------\n\nReturn only valid JSON.\n\nDo not include markdown.\n\nDo not wrap the response in a code block.\n\nAlways return every required top-level key.\n\nUse empty arrays when a category has no relevant entries.\n\nNever omit required fields in order to reduce verbosity.\n\nEvery returned object MUST be complete.\n\nNever use placeholder values such as:\n\n- unknownElement\n- unknownGroup\n- semanticPattern\n- layout\n- None\n- No component\n\nIf multiple source identifiers are consolidated, combine them with \" / \".\n\nEvery mapping must contain:\n\n- a meaningful identifier\n- a valid Material UI component\n- customizationLevel\n- confidence\n- reason\n\nConfidence must always be a number between 0 and 1.\n\nUse realistic confidence values.\n\nDo not omit confidence.\n\nEvery warning must contain:\n\n- target\n- reason\n- severity\n\nThe summary.compatibilityScore field must be a number between 0 and 100 representing how closely the visible design can be reproduced using standard Material UI components and composition patterns, without considering application logic or unseen interaction states.\n\nThe summary.customizationEffort field must represent the highest level of meaningful customization required beyond standard Material UI composition and theming.\n\nIt is not an estimate of the overall implementation effort.\n\nAllowed values:\n\n- none\n- minor\n- medium\n- high\n\nThe summary.overallCompatibility field must be a single sentence with a maximum of 25 words.\n\nIt should summarize the overall compatibility while explicitly reflecting the highest required customization level.\n\nAvoid absolute statements such as:\n\n- fully buildable\n- fully compatible\n- perfectly compatible\n\nwhen medium or high customization is required.\n\nPrefer wording such as:\n\n- largely compatible\n- mostly compatible\n- compatible with moderate customization\n\nDo not repeat this statement elsewhere.\n\nDo not use deprecated keys such as:\n\n- detectedElements\n- missingComponents\n- overallRecommendation\n- feasibility\n- canBeBuiltWithMUI\n\nAllowed customizationLevel values:\n\n- none\n- minor\n- medium\n- high\n\nAllowed severity values:\n\n- low\n- medium\n- high\n\n--------------------------------------------------\nREQUIRED JSON STRUCTURE\n--------------------------------------------------\n\n{\n  \"summary\": {\n    \"compatibilityScore\": 89,\n    \"customizationEffort\": \"minor\",\n    \"overallCompatibility\": \"The design is largely compatible with standard Material UI components. Minor customization is required for the icon-centered section dividers.\",\n    \"confidence\": 0.89\n  },\n\n  \"layoutMappings\": [\n    {\n      \"layoutId\": \"string\",\n      \"muiComponents\": [\"string\"],\n      \"customizationLevel\": \"minor\",\n      \"reason\": \"string\",\n      \"confidence\": 0.85\n    }\n  ],\n\n  \"elementMappings\": [\n    {\n      \"elementId\": \"string\",\n      \"muiComponent\": \"string\",\n      \"variant\": \"string\",\n      \"customizationLevel\": \"minor\",\n      \"reason\": \"string\",\n      \"confidence\": 0.85\n    }\n  ],\n\n  \"groupMappings\": [\n    {\n      \"groupId\": \"string\",\n      \"muiContainerComponent\": \"string\",\n      \"muiChildComponent\": \"string\",\n      \"customizationLevel\": \"minor\",\n      \"reason\": \"string\",\n      \"confidence\": 0.85\n    }\n  ],\n\n  \"semanticImplementationMappings\": [\n    {\n      \"semanticPatternName\": \"string\",\n      \"semanticType\": \"string\",\n      \"muiStrategy\": [\"string\"],\n      \"reason\": \"string\",\n      \"customizationLevel\": \"minor\",\n      \"confidence\": 0.85\n    }\n  ],\n\n  \"customImplementationWarnings\": [\n    {\n      \"target\": \"string\",\n      \"reason\": \"string\",\n      \"severity\": \"low\"\n    }\n  ]\n}",
+          "maxIterations": 10
+        }
+      },
+      "id": "9557ff64-8e82-4e10-a0df-2dd999603e79",
+      "name": "Component Matcher Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1552,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Upload Design Screenshot": {
+      "main": [
+        [
+          {
+            "node": "Prepare Screenshot Data URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Design Screenshot": {
+      "main": [
+        [
+          {
+            "node": "Interpret Semantic UI Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "MUI Docs Retriever",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load MUI Docs (Weekly)": {
+      "main": [
+        [
+          {
+            "node": "Fetch MUI Component Docs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build MUI Source Manifest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch MUI Component Docs": {
+      "main": [
+        [
+          {
+            "node": "Get Component Doc from GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Component Doc from GitHub": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Render HTML Visualization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render HTML Visualization": {
+      "main": [
+        [
+          {
+            "node": "Compose Final HTML Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Screenshot Data URL": {
+      "main": [
+        [
+          {
+            "node": "Analyze Design Screenshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Final HTML Page": {
+      "main": [
+        [
+          {
+            "node": "Respond with HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build MUI Source Manifest": {
+      "main": [
+        [
+          {
+            "node": "Fetch MUI Source from GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch MUI Source from GitHub": {
+      "main": [
+        [
+          {
+            "node": "Prepare MUI Source Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare MUI Source Documents": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prepare RAG Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare RAG Documents": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpret Semantic UI Structure": {
+      "main": [
+        [
+          {
+            "node": "Apply Summary Projection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Interpret Semantic UI Structure",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Interpret Semantic UI Structure",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Component Analysis Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Component Matcher Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MUI Docs Retriever": {
+      "ai_tool": [
+        [
+          {
+            "node": "Component Matcher Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Document Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Summary Projection": {
+      "main": [
+        [
+          {
+            "node": "Component Matcher Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Figma File Key": {
+      "main": [
+        [
+          {
+            "node": "Fetch Figma Design Graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Figma Design Graph": {
+      "main": [
+        [
+          {
+            "node": "Normalize Figma Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Figma Structure": {
+      "main": [
+        [
+          {
+            "node": "Interpret Semantic UI Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Component Matcher Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enter Figma Desgin Url": {
+      "main": [
+        [
+          {
+            "node": "Extract Figma File Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Component Matcher Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
