@@ -1,0 +1,37 @@
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Python (backend) ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.venv*/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# --- Node / Next.js (frontend) ---
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/.turbo/
+frontend/next-env.d.ts
+*.tsbuildinfo
+.pnpm-store/
+
+# --- Editor / OS ---
+.DS_Store
+.vscode/
+.idea/
+
+# --- Logs ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
