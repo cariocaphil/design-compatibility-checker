@@ -56,9 +56,11 @@ design-compatibility-checker/
 ├── backend/              # FastAPI application
 │   ├── app/
 │   │   ├── api/routes/   # HTTP route handlers
+│   │   ├── clients/      # External provider clients (e.g. Figma REST API)
 │   │   ├── core/         # Centralized configuration (app/core/config.py)
-│   │   └── schemas/      # Pydantic domain contracts (DesignStructure,
-│   │                     # SemanticAnalysis, DesignSummary, CompatibilityAssessment)
+│   │   ├── schemas/      # Pydantic domain contracts (DesignStructure,
+│   │   │                 # SemanticAnalysis, DesignSummary, CompatibilityAssessment)
+│   │   └── services/     # Application logic (e.g. Figma URL parsing and normalization)
 │   └── tests/            # Pytest unit tests
 │
 ├── prototype/n8n/        # Sanitized reference export of the original n8n workflow
@@ -69,7 +71,7 @@ design-compatibility-checker/
 └── IMPLEMENTATION_PLAN.md  # Phase 1 PR-by-PR build plan
 ```
 
-Service-level implementation details (routes, services, and clients not yet built) will keep growing under `backend/app/` as later PRs add the Figma/screenshot input paths, semantic analysis, summary projection, retrieval, and compatibility matching.
+Later PRs will add the screenshot input path, semantic analysis, summary projection, retrieval, compatibility matching, and the HTTP orchestration that wires these stages together.
 
 ## Tech stack
 
@@ -90,7 +92,7 @@ Service-level implementation details (routes, services, and clients not yet buil
 
 ### Environment configuration
 
-Copy the example environment file and fill in any values you need (all AI provider keys are optional until the corresponding pipeline stage is implemented):
+Copy the example environment file and fill in any values you need. AI provider keys and `FIGMA_ACCESS_TOKEN` are optional until the corresponding pipeline stage is wired to an HTTP endpoint (see **Project status** below):
 
 ```bash
 cp .env.example .env
@@ -167,7 +169,7 @@ This project is being built as a sequence of focused pull requests (see [`IMPLEM
 
 - [x] **PR 1 — Project Foundation**: monorepo, Next.js + FastAPI skeletons, centralized config, health endpoints, Podman/Compose setup, and CI.
 - [x] **PR 2 — Domain Schemas**: the core Pydantic contracts (`DesignStructure`, `SemanticAnalysis`, `DesignSummary`, `CompatibilityAssessment`) with unit tests. No external model calls yet.
-- [ ] **PR 3 — Figma Input Path**
+- [x] **PR 3 — Figma Input Path**: Figma URL validation, file-key extraction, a mockable Figma REST client, and deterministic normalization into `DesignStructure` (`app/clients/figma.py`, `app/services/figma.py`). No HTTP endpoint or semantic analysis yet.
 - [ ] **PR 4 — Screenshot Input Path**
 - [ ] **PR 5 — Semantic Analysis**
 - [ ] **PR 6 — Summary Projection**
@@ -178,4 +180,4 @@ This project is being built as a sequence of focused pull requests (see [`IMPLEM
 - [ ] **PR 11 — Quality Hardening**
 - [ ] **PR 12 — Documentation & Phase 1 Completion**
 
-No AI pipeline functionality (vision analysis, Figma parsing, semantic analysis, retrieval, or compatibility matching) is implemented yet — the domain contracts these stages will produce and consume are defined and tested, but nothing calls an external model or API yet.
+The Figma input path is implemented as a service layer (URL → Figma API → `DesignStructure`) and covered by unit tests with a mocked Figma API. It is not yet exposed via an HTTP endpoint — that wiring comes in PR 9. Screenshot analysis, semantic analysis, retrieval, and compatibility matching are not implemented yet; no external AI model is called.
