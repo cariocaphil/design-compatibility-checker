@@ -5,6 +5,7 @@ description = "FastAPI backend for the Design Compatibility Checker"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.141.1",
+    "httpx>=0.28.1",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.15.0",
     "uvicorn[standard]>=0.52.3",
@@ -12,7 +13,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.3",
