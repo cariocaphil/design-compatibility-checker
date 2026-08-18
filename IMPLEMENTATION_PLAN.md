@@ -34,12 +34,12 @@ No AI pipeline functionality yet.
 Implement and test the core Pydantic contracts:
 
 * `DesignStructure`
-* layout/group/element/separator models
+* layout/group/element models (dividers/separators are `DesignElement` entries, not a separate type)
 * repeated structures
 * relationships
 * custom patterns
 * `SemanticAnalysis`
-* `DesignSummary`
+* `DesignSummary` (a trimmed, uniformly confidence-free projection, including `SummaryRelationship`, `SummaryCustomPattern`, and `SummaryAmbiguousPattern`)
 * `CompatibilityAssessment`
 * mapping/warning models
 
@@ -64,6 +64,8 @@ Figma URL
 Mock the Figma API in automated tests.
 
 Do not implement semantic analysis.
+
+`DesignStructure.confidence` is currently required on discrete observations and is defined as vision-stage probabilistic certainty. Figma data is deterministic, so this field has no natural meaning on that path. Treat the Figma confidence mapping as a design decision requiring justification (not an n8n placeholder such as `0.9` to copy).
 
 ---
 
@@ -121,6 +123,8 @@ This must be deterministic Python.
 Add focused unit tests.
 
 No LLM call is permitted in this transformation.
+
+`DesignSummary` is uniformly confidence-free: do not propagate `confidence` from `DesignStructure` or `SemanticAnalysis`. Unlike the n8n projector, retain trimmed relationships and custom patterns (`SummaryRelationship`, `SummaryCustomPattern`) because they carry matcher-relevant information. Ambiguous patterns project to `SummaryAmbiguousPattern` (`description`, `reason` only). Dividers remain `SummaryElement` entries.
 
 ---
 
