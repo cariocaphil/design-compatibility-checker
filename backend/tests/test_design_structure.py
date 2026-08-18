@@ -25,26 +25,21 @@ def test_layout_description_has_no_confidence_field() -> None:
     assert "confidence" not in LayoutDescription.model_fields
 
 
-def test_design_group_requires_id_type_and_confidence() -> None:
+def test_design_group_requires_id_and_type() -> None:
     with pytest.raises(ValidationError):
-        DesignGroup(id="group-1", type="card")  # missing confidence
+        DesignGroup(id="group-1")  # missing type
 
 
 def test_design_group_defaults_children_to_empty_list() -> None:
-    group = DesignGroup(id="group-1", type="card", confidence=0.8)
+    group = DesignGroup(id="group-1", type="card")
 
     assert group.children == []
 
 
-@pytest.mark.parametrize("confidence", [0.0, 1.0])
-def test_design_group_confidence_accepts_boundary_values(confidence: float) -> None:
-    DesignGroup(id="group-1", type="card", confidence=confidence)
-
-
-@pytest.mark.parametrize("confidence", [-0.01, 1.01])
-def test_design_group_confidence_rejects_out_of_range_values(confidence: float) -> None:
-    with pytest.raises(ValidationError):
-        DesignGroup(id="group-1", type="card", confidence=confidence)
+def test_design_group_has_no_confidence_field() -> None:
+    # A group is a structural container, not a discrete inferred observation
+    # (see design_structure.py module docstring).
+    assert "confidence" not in DesignGroup.model_fields
 
 
 def test_design_element_requires_visual_role_and_confidence() -> None:
@@ -187,7 +182,6 @@ def test_design_structure_realistic_construction_round_trips() -> None:
                 "id": "group-1",
                 "type": "form-section",
                 "children": ["el-1", "el-2"],
-                "confidence": 0.9,
             }
         ],
         "elements": [
@@ -232,7 +226,7 @@ def test_design_structure_realistic_construction_round_trips() -> None:
     dumped = structure.model_dump()
 
     assert dumped["layout"]["overall_structure"] == "single-column form"
-    assert dumped["groups"][0]["confidence"] == 0.9
+    assert dumped["groups"][0]["children"] == ["el-1", "el-2"]
     assert dumped["elements"][1]["orientation"] == "horizontal"
     assert dumped["repeated_structures"][0]["item_count"] == 3
     assert dumped["relationships"][0]["relationship"] == "member-of"

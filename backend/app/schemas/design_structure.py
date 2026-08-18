@@ -13,12 +13,18 @@ concepts rather than JSON-schema artifacts; only the genuinely new properties
 as optional metadata that is populated for divider-like elements and left `None`
 otherwise. See the PR 2 plan's Discrepancies section for the full rationale.
 
-`confidence` fields throughout this module are diagnostic/monitoring metadata
-describing how certain the vision-analysis stage was about a given observation.
-This module does not consume them with any logic; later PRs decide whether and
-how to act on them. `LayoutDescription` intentionally has no `confidence` field:
-it is a single aggregate synthesis per `DesignStructure`, not a discrete,
-itemized observation.
+`confidence` fields are diagnostic/monitoring metadata describing how certain
+the vision-analysis stage was about a given discrete observation. This module
+does not consume them with any logic; later PRs decide whether and how to act
+on them. Only `DesignElement`, `RepeatedStructure`, `Relationship`, and
+`CustomPattern` carry `confidence` -- each represents a specific, itemized
+observation that the vision/normalization stage could be more or less certain
+about. `LayoutDescription` intentionally has no `confidence` field: it is a
+single aggregate synthesis per `DesignStructure`, not a discrete observation.
+`DesignGroup` also intentionally has no `confidence` field: a group is a
+structural container (`id`, `type`, `children`), not itself an inferred visual
+atom, so there is nothing distinct left to be certain or uncertain about once
+its member elements already carry their own confidence.
 """
 
 from typing import Literal
@@ -39,12 +45,15 @@ class LayoutDescription(BaseModel):
 
 
 class DesignGroup(BaseModel):
-    """A visually/semantically cohesive grouping of elements or other groups."""
+    """A visually/semantically cohesive grouping of elements or other groups.
+
+    Deliberately confidence-free (see module docstring): a group is a
+    structural container, not a discrete inferred observation.
+    """
 
     id: str
     type: str
     children: list[str] = Field(default_factory=list)
-    confidence: Confidence
 
 
 class DesignElement(BaseModel):
